@@ -51,5 +51,39 @@ namespace sensor_fusion_lite {
   };
 
   // ----- Public API -----
-  
+  FusionCore::FusionCore(FilterType filter_type, int state_dim, const State* initial_state) : impl_(std::make_unique<Impl>(filter_type, state_dim)) {
+    if (initial_state) {
+      impl_->state = *initial_state;
+    }
+  }
+
+  FusionCore::~FusionCore() = default;
+
+  void FusionCore::initialize() {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->initialized = true;
+    impl_->notify_diag("FusionCore initialized.");
+  }
+
+  void FusionCore::start() {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->running = true;
+    impl_->notify_diag("FusionCore started.");
+  }
+
+  void FusionCore::stop() {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->running = false;
+    impl_->notify_diag("FusionCore stopped.");
+  }
+
+  void FusionCore::set_filter_type(FilterType t) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->filter_type = t;
+  }
+
+  FilterType FusionCore::get_filter_type() const {
+    std::scoped_lock lock(impl_->mtx);
+    return impl_->filter_type;
+  }
 } // namespace sensor_fusion_lite
