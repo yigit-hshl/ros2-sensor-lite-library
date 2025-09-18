@@ -53,3 +53,53 @@ Predefined templates (IMU+Odometry, IMU+GPS, IMU+LIDAR).
 Diagnostics (diagnostic_msgs/DiagnosticArray) → show which sensor is active / dropped.
 
 Visualization plugin for RViz → fused vs. raw trajectories.
+
+## 🗂 High-Level Node Architecture
+
+📦 Node: fusion_node
+
+This is the main entrypoint ROS2 node.
+
+Inputs (Subscribed Topics)
+
+IMU data → /imu/data (sensor_msgs/Imu)
+
+Odometry → /wheel/odom (nav_msgs/Odometry)
+
+GPS (optional) → /gps/fix (sensor_msgs/NavSatFix)
+
+Pose estimates (optional) → /lidar/pose (geometry_msgs/PoseStamped)
+
+Outputs (Published Topics)
+
+Fused state → /fusion/odom (nav_msgs/Odometry)
+
+Pose estimate with covariance → /fusion/pose (geometry_msgs/PoseWithCovarianceStamped)
+
+Diagnostics → /fusion/diagnostics (diagnostic_msgs/DiagnosticArray)
+
+Parameters (YAML Configurable)
+
+use_imu (bool, default: true)
+
+use_odom (bool, default: true)
+
+use_gps (bool, default: false)
+
+use_pose (bool, default: false)
+
+filter_type (string: complementary, ekf, ukf)
+
+update_rate (Hz, default: 50)
+
+Noise covariance settings (per sensor):
+
+imu_noise_cov (3x3)
+
+odom_noise_cov (6x6)
+
+gps_noise_cov (3x3)
+
+pose_noise_cov (6x6)
+
+diagnostics_enabled (bool, default: true)
