@@ -26,4 +26,33 @@ namespace sensor_fusion_lite {
     std::vector<std::vector<double>> covariance; // NxN covariance
     Time timestamp{};
   };
-}
+
+  // Sensor measurement wrappers
+  struct ImuMeasurement {
+    std::array<double,3> linear_accel{0,0,0};
+    std::array<double,3> angular_vel{0,0,0};
+    std::optional<Quaternion> orientation;
+    Time timestamp{};
+  };
+
+  struct OdomMeasurement {
+    std::array<double,3> position{0,0,0};
+    std::array<double,3> linear_velocity{0,0,0};
+    std::array<double,6> cov_diag{};
+    Quaternion orientation{};
+    Time timestamp{};
+  };
+
+  struct GpsMeasurement {
+    std::array<double,3> position{0,0,0};
+    std::array<std::array<double,3>,3> cov{};
+    Time timestamp{};
+  };
+
+  struct PoseMeasurement {
+    std::array<double,3> position{0,0,0};
+    std::array<double,6> cov_diag{};
+    Quaternion orientation{};
+    Time timestamp{};
+  };
+} // namespace sensor_fusion_lite
