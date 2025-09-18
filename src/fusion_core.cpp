@@ -113,4 +113,79 @@ namespace sensor_fusion_lite {
     std::scoped_lock lock(impl_->mtx);
     impl_->sensor_enabled[sensor_name] = enabled;
   }
+
+  // ----- Measurement updates (stubs, fusion logic) -----
+  bool FusionCore::predict(const std::chrono::duration<double>& dt) {
+    std::scoped_lock lock(impl_->mtx);
+    if (!impl_->initialized) return false;
+
+    double dt_sec = dt.count();
+    for (int i = 0; i < 3; ++i) {
+      impl_->state.position[i] += impl_->state.velocity[i] * dt_sec;
+    }
+    impl_->state.timestamp += std::chrono::duration_cast<std::chrono::steady_clock::duration>(dt);
+
+    impl_->notify_state_update();
+    return true;
+  }
+
+  bool FusionCore::update_imu(const ImuMeasurement& imu) {
+    std::scoped_lock lock(impl_->mtx);
+    if (!impl_->initialized || !impl_->sensor_enabled["imu"]) return false;
+
+    // Simplified: integrate accel into velocity
+    for (int i = 0; i < 3; ++i) {
+      impl_->state.velocity[i] += imu.linear_accel[i] * 0.01; // assume dt=0.01
+    }
+    impl_->state.timestamp = imu.timestamp;
+
+    impl_->notify_state_update();
+    return true;
+  }
+
+  bool FusionCore::update_odom(const OdomMeasurement& odom) {
+    std::scoped_lock lock(impl_->mtx);
+    if (!impl_->initialized || !impl_->sensor_enabled["odom"]) return false;
+
+    impl_->state.position = odom.position;
+    impl_->state.velocity = odom.linear_velocity;
+    impl_->state.timestamp = odom.timestamp;
+
+    impl_->notify_state_update();
+    return true;
+  }
+
+  bool FusionCore::update_gps(const GpsMeasurement& gps) {
+    std::scoped_lock lock(impl_->mtx);
+    if (!impl_->initialized || !impl_->sensor_enabled["gps"]) return false;
+
+    impl_->state.position = gps.position;
+    impl_->state.timestamp = gps.timestamp;
+
+    impl_->notify_state_update();
+    return true;
+  }
+
+  bool FusionCore::update_pose(const PoseMeasurement& pose) {
+    std::scoped_lock lock(impl_->mtx);
+    if (!impl_->initialized || !impl_->sensor_enabled["pose"]) return false;
+
+    impl_->state.position = pose.position;
+    impl_->state.timestamp = pose.timestamp;
+
+    impl_->notify_state_update();
+    return true;
+  }
+
+  bool FusionCore::update_custom(const std::vector<std::vector<double>>& H, const std::vector<double>& z, const std::vector<std::vector<double>>& R, Time timestamp) {
+    std::scoped_lock lock(impl_->mtx);
+    if (!impl_->initialized) return false;
+
+    // Placeholder: just update timestamp
+    impl_->state.timestamp = timestamp;
+    impl_->notify_state_update();
+    return true;
+  }
+
+  // ----- Accessors -----
 } // namespace sensor_fusion_lite
