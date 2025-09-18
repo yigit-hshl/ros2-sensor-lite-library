@@ -107,24 +107,45 @@ diagnostics_enabled (bool, default: true)
 ### File Structure
 sensor_fusion_lite/
 ├── include/sensor_fusion_lite/
+
 │   ├── ekf.hpp
+
 │   ├── ukf.hpp
+
 │   ├── complementary_filter.hpp
+
 │   ├── fusion_core.hpp
+
 │   └── utils.hpp
+
 ├── src/
+
 │   ├── ekf.cpp
+
 │   ├── ukf.cpp
+
 │   ├── complementary_filter.cpp
+
 │   └── fusion_node.cpp
+
 ├── config/
+
 │   ├── imu_odometry.yaml
+
 │   ├── imu_gps.yaml
+
 │   └── full_stack.yaml
+
 ├── launch/
+
 │   └── fusion.launch.py
+
 ├── tests/
+
 │   ├── test_ekf.cpp
+
 │   ├── test_complementary.cpp
+
 │   └── test_node_interfaces.cpp
+
 └── CMakeLists.txt
