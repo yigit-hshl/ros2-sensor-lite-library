@@ -82,10 +82,10 @@ namespace sensor_fusion_lite {
     FilterType get_filter_type() const;
 
     // Set per-sensor noise/covariance (matrix sizes depend on sensor)
-    void set_imu_noise(const std::array<std::array<double,3>,3>& accle_cov, const std::array<std::array<double,3>,3>& gyro_cov);
-    void set_odom_covariance_diag(const std::array<double,6>& diag);
-    void set_gps_covariance(const std::array<std::array<double,3>,3>& cov);
-    void set_pose_cov_diag(const std::array<double,6>& diag);
+    void set_imu_noise(const std::vector<double>& accel_cov, const std::vector<double>& gyro_cov);
+    void set_odom_covariance_diag(const std::vector<double>& diag);
+    void set_gps_covariance(const std::vector<double>& cov);
+    void set_pose_cov_diag(const std::vector<double>& diag);
 
     // Enable/disable sensors at runtime
     void enable_sensor(const std::string& sensor_name, bool enabled);

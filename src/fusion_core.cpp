@@ -86,4 +86,31 @@ namespace sensor_fusion_lite {
     std::scoped_lock lock(impl_->mtx);
     return impl_->filter_type;
   }
+
+  // ----- Covariance setters (just store diagonals as vectors) -----
+  void FusionCore::set_imu_noise(const std::vector<double>& accel_cov, const std::vector<double>& gyro_cov) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->imu_accel_cov = accel_cov;
+    impl_->imu_gyro_cov = gyro_cov;
+  }
+
+  void FusionCore::set_odom_covariance_diag(const std::vector<double>& diag) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->odom_cov_diag = diag;
+  }
+
+  void FusionCore::set_gps_covariance(const std::vector<double>& cov) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->gps_cov = cov;
+  }
+
+  void FusionCore::set_pose_cov_diag(const std::vector<double>& diag) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->pose_cov_diag = diag;
+  }
+
+  void FusionCore::enable_sensor(const std::string& sensor_name, bool enabled) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->sensor_enabled[sensor_name] = enabled;
+  }
 } // namespace sensor_fusion_lite
