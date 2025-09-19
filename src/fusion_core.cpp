@@ -188,4 +188,21 @@ namespace sensor_fusion_lite {
   }
 
   // ----- Accessors -----
+  State FusionCore::get_state() const {
+    std::scoped_lock lock(impl_->mtx);
+    return impl_->state;
+  }
+
+  std::vector<std::vector<double>> FusionCore::get_covariance() const {
+    std::scoped_lock lock(impl_->mtx);
+    return {{1.0,0.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0}}; // placeholder identity
+  }
+
+  void FusionCore::set_state(const State& s) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->state = s;
+    impl_->notify_state_update();
+  }
+
+  // ----- Callbacks -----
 } // namespace sensor_fusion_lite
