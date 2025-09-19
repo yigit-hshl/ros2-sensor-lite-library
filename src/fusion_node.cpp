@@ -22,7 +22,21 @@ public:
     fused_state_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("fused_state, 10");
 
     // Create subscribers
+    imu_sub = this->create_subscription<sensor_msgs::msg::Imu>("imu", 50, std::bind(&FusionNode::imu_callback, this, std::placeholders::_1));
+    odom_sub = this->create_subscription<nav_msgs::msg::Odometry>("odom", 50, std::bind(&FusionNode::odom_callback, this, std::placeholders::_1));
+    gps_sub = this->create_subscription<geometry_msgs::msg::Point>("gps", 10, std::bind(&FusionNode::gps_callback, this, std::placeholders::_1));
+    pose_sub = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("pose", 10, std::bind(&FusionNode::pose_callback, this, std::placeholders::_1));
+
+    // Diagnostics
+    
   }
+
+private:
+  // ----- Callbacks from ROS topics -----
+
+  // ----- Publishing fused state -----
+
+  // ----- Member -----
 };
 
 // ----- Main -----
