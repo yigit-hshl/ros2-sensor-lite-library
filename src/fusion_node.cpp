@@ -61,7 +61,13 @@ private:
     fusion_core_.update_odom(meas);
   }
 
-  
+  void gps_callback(const geometry_msgs::msg::Point::SharedPtr msg) {
+    sensor_fusion_lite::GpsMeasurement meas;
+    meas.position = {msg->x, msg->y, msg->z};
+    meas.timestamp = std::chrono::steady_clock::now();
+
+    fusion_core_.update_gps(meas);
+  }
 
   // ----- Publishing fused state -----
 
