@@ -78,6 +78,16 @@ private:
   }
 
   // ----- Publishing fused state -----
+  void publish_state(const State& st) {
+    geometry_msgs::msg::PoseStamped msg;
+    msg.header.stamp = this->get_clock()->now();
+    msg.header.frame_id = "map";
+    msg.pose.position.x = st.position[0];
+    msg.pose.position.y = st.position[1];
+    msg.pose.position.z = st.position[2];
+    // orientation omitted
+    fused_state_pub_->publish(msg);  
+  }
 
   // ----- Member -----
 };
