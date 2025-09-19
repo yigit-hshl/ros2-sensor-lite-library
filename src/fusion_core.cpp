@@ -205,4 +205,20 @@ namespace sensor_fusion_lite {
   }
 
   // ----- Callbacks -----
+  int FusionCore::register_state_callback(StateCallback cb) {
+    std::scoped_lock lock(impl_->mtx);
+    int id = impl_->callback_id_counter++;
+    impl_->state_callbacks[id] = cb;
+    return id;
+  }
+
+  void FusionCore::unregister_state_callback(int id) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->state_callbacks.erase(id);
+  }
+
+  void FusionCore::set_diagnostic_callback(DiagnosticCallback cb) {
+    std::scoped_lock lock(impl_->mtx);
+    impl_->diag_cb = cb;
+  }
 } // namespace sensor_fusion_lite
