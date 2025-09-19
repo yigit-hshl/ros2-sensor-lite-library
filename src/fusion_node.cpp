@@ -69,6 +69,14 @@ private:
     fusion_core_.update_gps(meas);
   }
 
+  void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
+    sensor_fusion_lite::PoseMeasurement meas;
+    meas.position = {msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z};
+    meas.timestamp = std::chrono::steady_clock::now();
+
+    fusion_core_.update_pose(meas);
+  }
+
   // ----- Publishing fused state -----
 
   // ----- Member -----
