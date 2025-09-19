@@ -43,6 +43,16 @@ public:
 
 private:
   // ----- Callbacks from ROS topics -----
+  void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
+    sensor_fusion_lite::ImuMeasurement meas;
+    meas.linear_accel = {msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z};
+    meas.angular_vel = {msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z};
+    meas.timestamp = std::chrono::steady_clock::now();
+
+    fusion_core_.update_imu(meas);
+  }
+
+  
 
   // ----- Publishing fused state -----
 
