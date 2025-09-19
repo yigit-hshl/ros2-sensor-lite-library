@@ -52,6 +52,15 @@ private:
     fusion_core_.update_imu(meas);
   }
 
+  void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    sensor_fusion_lite::OdomMeasurement meas;
+    meas.position = {msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z};
+    meas.linear_velocity = {msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z};
+    meas.timestamp = std::chrono::steady_clock::now();
+
+    fusion_core_.update_odom(meas);
+  }
+
   
 
   // ----- Publishing fused state -----
