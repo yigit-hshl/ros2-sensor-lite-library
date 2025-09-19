@@ -89,7 +89,14 @@ private:
     fused_state_pub_->publish(msg);  
   }
 
-  // ----- Member -----
+  // ----- Members -----
+  FusionCore fusion_core_;
+
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr fused_state_pub_;
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr gps_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 };
 
 // ----- Main -----
