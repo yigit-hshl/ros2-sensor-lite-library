@@ -28,7 +28,17 @@ public:
     pose_sub = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("pose", 10, std::bind(&FusionNode::pose_callback, this, std::placeholders::_1));
 
     // Diagnostics
-    
+    fusion_core_.set_diagnostic_callback([this](const std::string& msg) {
+      RCLCPP_INFO(this->get_logger(), "[FusionCore %s]", msg.c_str());
+    });
+
+    // Register state callback
+    fusion_core_.register_state_callback([this](const State& st) {this->publish_state(st);});
+
+    fusion_core_.initialize();
+    fusion_core_.start();
+
+    RCLCPP_INFO(this->get_logger(), "FusionNode started.");
   }
 
 private:
