@@ -65,4 +65,21 @@ int main() {
   State s3 = core.get_state();
   assert(s3.position[0] == 10.0 && s3.position[1] == 1.0);
   std::cout << "GPS update test passed.\n";
+
+  // ----- Pose update -----
+  PoseMeasurement pose{};
+  pose.position = {20.0, 2.0, 0.0};
+  pose.timestamp = std::chrono::steady_clock::now();
+  ok = core.update_pose(pose);
+  assert(ok);
+  State s4 = core.get_state();
+  assert(s4.position[0] == 20.0 && s4.position[1] == 2.0);
+  std::cout << "Pose update test passed.\n";
+  
+  // ----- Callback fired -----
+  assert(callback_called);
+  std::cout << "Callback test passed.\n";
+
+  std::cout << "OK -> All FusionCore unit tests passed.\n";
+  return 0;
 }
