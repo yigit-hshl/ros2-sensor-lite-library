@@ -56,5 +56,13 @@ int main() {
   assert(s2.position[0] == 5.0);
   std::cout << "Odom update test passed.\n";
 
-  
+  // ----- GPS update -----
+  GpsMeasurement gps{};
+  gps.position = {10.0, 1.0, 0.0};
+  gps.timestamp = std::chrono::steady_clock::now();
+  ok = core.update_gps(gps);
+  assert(ok);
+  State s3 = core.get_state();
+  assert(s3.position[0] == 10.0 && s3.position[1] == 1.0);
+  std::cout << "GPS update test passed.\n";
 }
