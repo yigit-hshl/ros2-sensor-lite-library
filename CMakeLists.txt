@@ -58,5 +58,25 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
+# Unit test
+add_executable(test_fusion_core
+  test/test_fusion_core.cpp
+)
+target_link_libraries(test_fusion_core fusion_core)
+ament_target_dependencies(test_fusion_core rclcpp)
+
+install(TARGETS test_fusion_core
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+# Enable testing
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
+  add_test(NAME test_fusion_core
+    COMMAND test_fusion_core)
+endif()
+
 # Ament package macros
 ament_package()
