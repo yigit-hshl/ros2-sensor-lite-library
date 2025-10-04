@@ -45,5 +45,16 @@ int main() {
   assert(ok);
   std::cout << "IMU update test passed.\n";
 
+  // ----- Odom update -----
+  OdomMeasurement odom{};
+  odom.position = {5.0, 0.0, 0.0};
+  odom.linear_velocity = {0.5, 0.0, 0.0};
+  odom.timestamp = std::chrono::steady_clock::now();
+  ok = core.update_odom(odom);
+  assert(ok);
+  State s2 = core.get_state();
+  assert(s2.position[0] == 5.0);
+  std::cout << "Odom update test passed.\n";
+
   
 }
