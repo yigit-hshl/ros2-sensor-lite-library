@@ -96,6 +96,16 @@ int main() {
   assert(state_opt->estimate.size() == 3);
 
   // Test 3: Add multiple measurements and check averaging
+  fusion.add_measurement(now + std::chrono::milliseconds(10), {3.0, 0.0, 0.0});
+  state_opt = fusion.get_state();
+  assert(state_opt.has_value());
+  // Expected average: (1 + 3) / 2 = 2
+  assert(state_opt->estimate[0] == 2.0);
+
+  // Test 4: Reset clears state
+  fusion.reset();
+  state_opt = fusion.get_state();
+  assert(!state_opt.has_value());
 
   std::cout << "[OK] All FusionCore unit tests passed.\n";
   return 0;
