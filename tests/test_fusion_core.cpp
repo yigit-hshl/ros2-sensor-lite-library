@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cassert>
 #include <chrono>
+#include <thread>
 
 using namespace sensor_fusion_lite;
 
@@ -80,6 +81,22 @@ int main() {
   assert(callback_called);
   std::cout << "Callback test passed.\n";
 
-  std::cout << "OK -> All FusionCore unit tests passed.\n";
+  FusionCore fusion;
+
+  auto now = std::chrono::steady_clock::now();
+
+  // Test 1: Initial state should be empty
+  auto state_opt = fusion.get_state();
+  assert(!state_opt.has_value());
+
+  // Test 2: Add one measurement, check whether state exists
+  fusion.add_measurement(now, {1.0, 0.0, 0.0});
+  state_opt = fusion.get_state();
+  assert(state_opt.has_value());
+  assert(state_opt->estimate.size() == 3);
+
+  // Test 3: Add multiple measurements and check averaging
+
+  std::cout << "[OK] All FusionCore unit tests passed.\n";
   return 0;
 }
