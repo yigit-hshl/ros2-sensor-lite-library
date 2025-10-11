@@ -30,7 +30,7 @@ namespace sensor_fusion_lite
 
     virtual State get_state() const = 0;
     virtual std::vector<std::vector<double>> get_covariance() const = 0;
-    virtual void set_state(const State& s) = 0;
+    virtual void set_state(const State &s) = 0;
   };
 
   using BaseFilterPtr = std::unique_ptr<BaseFilter>;

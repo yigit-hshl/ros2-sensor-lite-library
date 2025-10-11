@@ -6,18 +6,19 @@
 
 using namespace sensor_fusion_lite;
 
-int main() {
+int main()
+{
   bool callback_called = false;
 
   // Create FusionCore with default filter
   FusionCore core(FilterType::COMPLEMENTARY, 6, nullptr);
 
   // Register a state callback
-  core.register_state_callback([&](const State& st){
+  core.register_state_callback([&](const State &st)
+                               {
     callback_called = true;
     std::cout << "State calledback fired: pos=("
-      << st.position[0] << "," << st.position[1] << "," << st.position[2] << ")\n";
-  });
+      << st.position[0] << "," << st.position[1] << "," << st.position[2] << ")\n"; });
 
   // Init and start
   core.initialize();
@@ -76,7 +77,7 @@ int main() {
   State s4 = core.get_state();
   assert(s4.position[0] == 20.0 && s4.position[1] == 2.0);
   std::cout << "Pose update test passed.\n";
-  
+
   // ----- Callback fired -----
   assert(callback_called);
   std::cout << "Callback test passed.\n";
