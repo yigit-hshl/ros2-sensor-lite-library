@@ -84,6 +84,44 @@ namespace sensor_fusion_lite {
   }
 
   void ComplementaryFilter::update_pose(const PoseMeasurement& pose) {
-    
-  }  
+    std::scoped_lock lock(mtx_);
+    for (int i = 0; i < 3; ++i) {
+      state_.position[i] = alpha_ * state_.position[i] + (1.0 - alpha_) * pose.position[i];
+    }
+    // Orientation blend
+    for (int i = 0; i < 4; ++i) {
+      state_.orientation[i] = alpha_ * state_.orientation[i] + (1.0 - alpha) * pose.orientation[i];
+    }
+    // Normalize orientation
+    double norm = 0.0;
+    for (int i = 0; i < 4; ++i) {
+      norm += state_.orientation[i] * state_.orientation[i];
+    }
+    if (norm > 0.0) {
+      norm = std::sqrt(norm);
+      for (int i = 0; i < 4; ++i) {
+        state_.orientation[i] /= norm;
+      }
+    }
+    state_.timestamp = pose.timestamp;
+  }
+  
+  void ComplementaryFilter::update_custom(const std::vector<std::vector<double>>&,
+                                          const std::vector<double>&,
+                                          const std::vector<std::vector<double>>&,
+                                          Time timestamp) {
+
+  }
+
+  State ComplementaryFilter::get_state() const {
+
+  }
+
+  std::vector<std::vector<double>> ComplementaryFilter::get_covariance() const {
+
+  }
+
+  void ComplementaryFilter::set_state(const State& s) {
+
+  }
 } // namespace sensor_fusion_lite
