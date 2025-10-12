@@ -2,8 +2,6 @@
 
 A lightweight, modular library for combining multiple sensors (IMU, odometry, GPS, LIDAR pose, etc.) into a consistent state estimate without forcing users into heavy configs.
 
-🔑 Features We Should Implement
-
 1. Pluggable Filters
 
 Complementary filter → simple IMU fusion (gyro + accel).
@@ -36,9 +34,9 @@ Predefined templates (IMU+Odometry, IMU+GPS, IMU+LIDAR).
 Diagnostics (diagnostic_msgs/DiagnosticArray) → show which sensor is active / dropped.
 Visualization plugin for RViz → fused vs. raw trajectories.
 
-## 🗂 High-Level Node Architecture
+## High-Level Node Architecture
 
-📦 Node: fusion_node
+ Node: fusion_node
 
 This is the main entrypoint ROS2 node.
 
@@ -86,48 +84,3 @@ pose_noise_cov (6x6)
 
 diagnostics_enabled (bool, default: true)
 
-### File Structure
-sensor_fusion_lite/
-├── include/sensor_fusion_lite/
-
-│   ├── ekf.hpp
-
-│   ├── ukf.hpp
-
-│   ├── complementary_filter.hpp
-
-│   ├── fusion_core.hpp
-
-│   └── utils.hpp
-
-├── src/
-
-│   ├── ekf.cpp
-
-│   ├── ukf.cpp
-
-│   ├── complementary_filter.cpp
-
-│   └── fusion_node.cpp
-
-├── config/
-
-│   ├── imu_odometry.yaml
-
-│   ├── imu_gps.yaml
-
-│   └── full_stack.yaml
-
-├── launch/
-
-│   └── fusion.launch.py
-
-├── tests/
-
-│   ├── test_ekf.cpp
-
-│   ├── test_complementary.cpp
-
-│   └── test_node_interfaces.cpp
-
-└── CMakeLists.txt
