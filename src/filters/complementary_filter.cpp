@@ -62,5 +62,18 @@ namespace sensor_fusion_lite {
     state_.timestamp = imu.timestamp;
   }
 
+  void ComplementaryFilter::update_odom(const OdomMeasurement& odom) {
+    std::scoped_lock lock(mtx_);
+    // Blend position: state = alpha*state + (1-alpha)*odom
+    for (int i = 0; i < 3; ++i) {
+      state_.position[i] = alpha_ * state_.position[i] + (1.0 - alpha_) * odom.position[i];
+    }
+    // Replace velocity from odom (or blend)
+    for (int i = 0; i < 3; ++i) {
+      state_.velocity[i] = alpha_ * state_.velocity[i] + (1.0 - alpha_) * odom.linear_velocity[i];
+    }
+    state_.timestamp = odom.timestamp;
+  }
+
   
 } // namespace sensor_fusion_lite
