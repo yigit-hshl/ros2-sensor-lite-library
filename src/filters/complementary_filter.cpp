@@ -75,5 +75,15 @@ namespace sensor_fusion_lite {
     state_.timestamp = odom.timestamp;
   }
 
-  
+  void ComplementaryFilter::update_gps(const GpsMeasurement& gps) {
+    std::scoped_lock lock(mtx_);
+    for (int i = 0; i < 3; ++i) {
+      state_.position[i] = alpha_ * state_.position[i] + (1.0 - alpha_) * gps.position[i];
+    }
+    state_.timestamp = gps.timestamp;
+  }
+
+  void ComplementaryFilter::update_pose(const PoseMeasurement& pose) {
+    
+  }  
 } // namespace sensor_fusion_lite
