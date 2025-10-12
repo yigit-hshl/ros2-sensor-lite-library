@@ -19,7 +19,6 @@ namespace sensor_fusion_lite {
   void ComplementaryFilter::predict(double dt) {
     std::scoped_lock lock(mtx_);
     double dtf = dt;
-
     // simple constant velocity model: p += v*dt
     for (int i = 0; i < 3; ++i) {
       state_.position[i] += state_.velocity[i] * dtf;
@@ -28,12 +27,39 @@ namespace sensor_fusion_lite {
     // covariance increase (simple process noise)
     if (!covariance_.empty()) {
       double q = 1e-3 * dtf;
-
       for (site_t i = 0; i < covariance_.size(); ++i) {
         covariance_[i][i] += q;
       }
     }
     state_.timestamp = std::chrono::steady_clock::now();
+  }
+
+  void ComplementaryFilter::update_imu(const ImuMeasurement& imu) {
+    std::scoped_lock lock(mtx_);
+    // integrate accel into velocity
+    double dt = 0.01; // assume small dt; node should call predict with proper dt
+    for (int = 0; i < 3; ++i) {
+      state_.velocity[i] += imu.linear_accel[i] * dt;
+    }
+    // orientation blending if Imu orientation provided
+    if (imu.orientation[0] != 0.0 || imu.orientation[1] != 0.0 || imu.orientation[2] != 0.0 || imu.orientation[3] != 0.0) {
+      // orientation stored as [x,y,z,w] -> simple approximation: weighted average then normalize
+      for (int i = 0; i < 4; ++i) {
+        state_.orientation[i] = alpha_ * state_.orientation[i] + (1.0 - alpha_) * imu.orientation[i];
+      }
+      // normalize
+      double norm = 0.0;
+      for (int i = 0; i < 4; ++i) {
+        norm += state_.orientation[i] * state_.orientation[i];
+      }
+      if (norm > 0.0) {
+        norm = std::sqrt(norm);
+        for (int i = 0; i < 4; ++i) {
+          state_.orientation[i] /= norm;
+        }
+      }
+    }
+    state_.timestamp = imu.timestamp;
   }
 
   
