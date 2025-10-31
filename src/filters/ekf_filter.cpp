@@ -29,5 +29,13 @@ namespace sensor_fusion_lite {
     state_.timestamp = std::chrono::steady_clock::now();
   }
 
+  void ExtendedKalmanFilter::update_imu(const ImuMeasurement& imu) {
+    std::scoped_lock lock(mtx_);
+    // use accel to adjust velocity (simple correction)
+    double dt = 0.01;
+    for (int i = 0; i < 3; ++i) state_.velocity[i] += imu.linear_accel[i] * dt;
+    state_.timestamp = imu.timestamp;
+  }
+
   
 }
