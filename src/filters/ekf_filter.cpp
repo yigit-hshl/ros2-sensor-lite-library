@@ -16,5 +16,18 @@ namespace sensor_fusion_lite {
     for (int i = 0; i < std::min(state_dim, 6); ++i) Q_[i][i] = 1e-4;
   }
 
+  void ExtendedKalmanFilter::predict(double dt) {
+    std::scoped_lock lock(mtx_);
+    // state vector assumed [px, py, pz, vx, vy, vz]
+    // px += vx*dt; py += vy*dt; pz += vz*dt
+    for (int i = 0; i < 3; ++i) state_.position[i] += state_.velocity[i] * dt;
+
+    // P = P + Q*dt (simple approximation)
+    for (size_t i = 0; i < P_.size(); ++i) {
+      P_[i][i] += Q_.[i][i] * dt;
+    }
+    state_.timestamp = std::chrono::steady_clock::now();
+  }
+
   
 }
