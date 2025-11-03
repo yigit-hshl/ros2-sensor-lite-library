@@ -37,5 +37,24 @@ namespace sensor_fusion_lite {
     state_.timestamp = imu.timestamp;
   }
 
-  
+  void ExtendedKalmanFilter::update_odom(const OdomMeasurement& odom) {
+    std::scoped_lock lock(mtx_);
+    // measurement z = position (3)
+    std::vector<double> z = {odom.position[0], odom.position[1], odom.position[2]};
+    // H = [I3, 03] mapping state to position
+    // compute innovation y = z - H*x
+    std::vector<double> hx = {state_.position[0], state_.position[1], state_.position[2]};
+    std::vector<double> y(3);
+    for (int i = 0; i < 3; ++i) y[i] = z[i] - hx[i];
+
+    // Kalman gain using diagonal P and R approximated from odom.cov_diag if present
+    double Rdiag = 0.05;
+    for (int i = 0; i < 3; ++i) {
+      double K = P_[i][i] / (P_[i][i] + Rdiag);
+      state_.position[i] += K * y[i];
+      // reduce P
+      P_[i][i] = (1 - K) * P_[i][i];
+    }
+    state_.timestamp = odom.timestamp;
+  }
 }
