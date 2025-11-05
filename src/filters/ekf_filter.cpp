@@ -123,5 +123,23 @@ namespace sensor_fusion_lite
     state_.timestamp = timestamp;
   }
 
+  State ExtendedKalmanFilter::get_state() const
+  {
+    std::scoped_lock lock(mtx_);
+    return state_;
+  }
+
+  std::vector<std::vector<double>> ExtendedKalmanFilter::get_covariance() const
+  {
+    std::scoped_lock lock(mtx_);
+    return P_;
+  }
+
+  void ExtendedKalmanFilter::set_state(const State& s)
+  {
+    std::scoped_lock lock(mtx_);
+    state_ = s;
+  }
+
   
 } // namespace sensor_fusion_lite
