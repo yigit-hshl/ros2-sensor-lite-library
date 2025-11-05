@@ -103,5 +103,25 @@ namespace sensor_fusion_lite
     state_.timestamp = pose.timestamp;
   }
 
+  void ExtendedKalmanFilter::update_custom(const std::vector<std::vector<double>>& H,
+                                          const std::vector<double>& z,
+                                          const std::vector<std::vector<double>>& R,
+                                          Time timestamp)
+  {
+    std::scoped_lock lock(mtx_);
+    // if H maps to first m states, do a simple diagonal gain update
+    size_t m = z.size();
+    for (size_t i = 0; i < m && i < state_.position.size(); ++i)
+    {
+      double hx = state_.position[i];
+      double y = z[i] - hx;
+      double Rdiag = (R.size() > i && R[i].size() > i) ? R[i][i] : 0.1;
+      double K = P_[i][i] / (P_[i][i] + Rdiag);
+      state_.position[i] += K * y;
+      P_[i][i] = (1 - K) * P_[i][i];
+    }
+    state_.timestamp = timestamp;
+  }
+
   
 } // namespace sensor_fusion_lite
