@@ -88,6 +88,20 @@ namespace sensor_fusion_lite
 
   void ExtendedKalmanFilter::update_pose(const PoseMeasurement& pose)
   {
-    
+    std::scoped_lock lock(mtx_);
+    std::vector<double> z = {pose.position[0], pose.position[1], pose.position[2]};
+    double Rdiag = 0.02;
+    for (int i = 0; i < 3; ++i)
+    {
+      double y = z[i] - state_.position[i];
+      double K = P_[i][i] / (P_[i][i] + Rdiag);
+      state_.position[i] += K * y;
+      P_[i][i] = (1 - K) * P_[i][i];
+    }
+    // update orientation with direct assignment
+    state_.orientation = pose.orientation;
+    state_.timestamp = pose.timestamp;
   }
-}
+
+  
+} // namespace sensor_fusion_lite
