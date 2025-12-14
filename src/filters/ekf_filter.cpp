@@ -86,7 +86,7 @@ namespace sensor_fusion_lite
     state_.timestamp = gps.timestamp;
   }
 
-  void ExtendedKalmanFilter::update_pose(const PoseMeasurement& pose)
+  void ExtendedKalmanFilter::update_pose(const PoseMeasurement &pose)
   {
     std::scoped_lock lock(mtx_);
     std::vector<double> z = {pose.position[0], pose.position[1], pose.position[2]};
@@ -103,10 +103,10 @@ namespace sensor_fusion_lite
     state_.timestamp = pose.timestamp;
   }
 
-  void ExtendedKalmanFilter::update_custom(const std::vector<std::vector<double>>& H,
-                                          const std::vector<double>& z,
-                                          const std::vector<std::vector<double>>& R,
-                                          Time timestamp)
+  void ExtendedKalmanFilter::update_custom(const std::vector<std::vector<double>> &H,
+                                           const std::vector<double> &z,
+                                           const std::vector<std::vector<double>> &R,
+                                           Time timestamp)
   {
     std::scoped_lock lock(mtx_);
     // if H maps to first m states, do a simple diagonal gain update
@@ -135,11 +135,22 @@ namespace sensor_fusion_lite
     return P_;
   }
 
-  void ExtendedKalmanFilter::set_state(const State& s)
+  void ExtendedKalmanFilter::set_state(const State &s)
   {
     std::scoped_lock lock(mtx_);
     state_ = s;
   }
 
-  
+  std::vector<std::vector<double>> ExtendedKalmanFilter::mat_add(
+      const std::vector<std::vector<double>> &A,
+      const std::vector<std::vector<double>> &B)
+  {
+    size_t n = A.size();
+    std::vector<std::vector<double>> C = A;
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = 0; j < A[i].size(); ++j)
+        C[i][j] += B[i][j];
+
+    return C;
+  }
 } // namespace sensor_fusion_lite
