@@ -155,8 +155,8 @@ namespace sensor_fusion_lite
   }
 
   std::vector<std::vector<double>> ExtendedKalmanFilter::mat_mul(
-      const std::vector<std::vector<double>>& A,
-      const std::vector<std::vector<double>>& B)
+      const std::vector<std::vector<double>> &A,
+      const std::vector<std::vector<double>> &B)
   {
     size_t n = A.size();
     size_t m = B[0].size();
@@ -168,5 +168,13 @@ namespace sensor_fusion_lite
     return C;
   }
 
-  
+  std::vector<std::vector<double>> ExtendedKalmanFilter::mat_transpose(const std::vector<std::vector<double>>& A)
+  {
+    size_t n = A.size(), m = A[0].size();
+    std::vector<std::vector<double>> T(m, std::vector<double>(n, 0.0));
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = 0; j < m; ++j)
+        T[j][i] = A[i][j];
+    return T;
+  }
 } // namespace sensor_fusion_lite
