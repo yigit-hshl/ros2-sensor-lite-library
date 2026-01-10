@@ -184,4 +184,20 @@ namespace sensor_fusion_lite
     for (size_t i = 0; i < n; ++i) I[i][i] = val;
     return I;
   }
+
+  std::vector<double> ExtendedKalmanFilter::mat_vec_mul(
+      const std::vector<std::vector<double>>& A,
+      const std::vector<double>& v)
+  {
+    std::vector<double> out(A.size(), 0.0);
+    for (size_t i = 0; i < A.size(); ++i)
+      for (size_t j = 0; j < v.size(); ++j)
+        out[i] += A[i][j] * v[j];
+    return out;
+  }
+
+  double ExtendedKalmanFilter::clamp(double v, double lo, double hi)
+  {
+    return std::max(lo, std::min(hi, v));
+  }
 } // namespace sensor_fusion_lite
