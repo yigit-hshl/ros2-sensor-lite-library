@@ -177,4 +177,11 @@ namespace sensor_fusion_lite
         T[j][i] = A[i][j];
     return T;
   }
+
+  std::vector<std::vector<double>> ExtendedKalmanFilter::mat_identity(size_t n, double val)
+  {
+    std::vector<std::vector<double>> I(n, std::vector<double>(n, 0.0));
+    for (size_t i = 0; i < n; ++i) I[i][i] = val;
+    return I;
+  }
 } // namespace sensor_fusion_lite
