@@ -8,6 +8,7 @@ endif()
 
 # Find ROS2 packages
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -57,6 +58,9 @@ install(TARGETS fusion_core fusion_node
 install(DIRECTORY include/
   DESTINATION include
 )
+
+ament_python_install_package(${PROJECT_NAME})
+
 
 # Unit test
 add_executable(test_fusion_core

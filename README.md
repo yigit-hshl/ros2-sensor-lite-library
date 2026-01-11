@@ -84,3 +84,24 @@ pose_noise_cov (6x6)
 
 diagnostics_enabled (bool, default: true)
 
+
+## Build Instructions
+
+```bash
+mkdir -p colcon_ws/src
+cd colcon_ws/src
+git clone <repo_url>
+cd ..
+colcon build --symlink-install
+source install/setup.bash
+```
+
+## Documentation
+
+To generate Doxygen documentation:
+
+```bash
+doxygen docs/Doxyfile
+```
+
+See [docs/architecture.md](docs/architecture.md) for design details.

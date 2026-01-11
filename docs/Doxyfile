@@ -1,0 +1,19 @@
+# Doxyfile 1.9.1
+
+PROJECT_NAME           = "Sensor Fusion Lite"
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "Lightweight ROS 2 Sensor Fusion Library"
+
+OUTPUT_DIRECTORY       = docs/generated
+INPUT                  = include src
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+
+HAVE_DOT               = NO
+# If you have graphviz installed, set HAVE_DOT to YES
