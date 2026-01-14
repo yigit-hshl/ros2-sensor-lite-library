@@ -57,4 +57,14 @@ void UnscentedKalmanFilter::update_odom(const OdomMeasurement &odom) {
   state_.timestamp = odom.timestamp;
 }
 
+void UnscentedKalmanFilter::update_gps(const GpsMeasurement &gps) {
+  std::scoped_lock lock(mtx_);
+  for (int i = 0; i < 3; ++i) {
+    double K = P_[i][i] / (P_[i][i] + 3.0);
+    state_.position[i] += K * (gps.position[i] - state_.position[i]);
+    P_[i][i] = (1 - K) * P_[i][i];
+  }
+  state_.timestamp = gps.timestamp;
+}
+
 } // namespace sensor_fusion_lite
