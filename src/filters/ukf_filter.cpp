@@ -28,11 +28,6 @@ void UnscentedKalmanFilter::initialize(const State &initial_state,
 // Temporarily copy EKF functionality
 void UnscentedKalmanFilter::predict(double dt) {
   std::scoped_lock lock(mtx_);
-  /**
-   * @brief Update the state based on the predicted motion.
-   *
-   * @param dt The time difference since the last update.
-   */
   for (int i = 0; i < 3; ++i)
     state_.position[i] += state_.velocity[i] * dt;
 
@@ -43,4 +38,13 @@ void UnscentedKalmanFilter::predict(double dt) {
   }
   state_.timestamp = std::chrono::steady_clock::now();
 }
+
+void UnscentedKalmanFilter::update_imu(const ImuMeasurement &imu) {
+  std::scoped_lock lock(mtx_);
+  double dt = 0.01;
+  for (int i = 0; i < 3; ++i)
+    state_.velocity[i] += imu.linear_accel[i] * dt;
+  state_.timestamp = imu.timestamp;
+}
+
 } // namespace sensor_fusion_lite
