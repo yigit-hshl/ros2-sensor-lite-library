@@ -6,7 +6,6 @@
 #include "sensor_fusion_lite/filters/ekf_filter.hpp"
 #include "sensor_fusion_lite/filters/ukf_filter.hpp"
 
-
 #include <atomic>
 #include <iostream>
 #include <memory>
@@ -18,6 +17,13 @@ namespace sensor_fusion_lite {
 // ==================
 // Filter factory
 // ==================
+
+/**
+ * @brief Factory function to create a filter instance based on the specified
+ * type.
+ * @param type The type of filter to create.
+ * @return A unique pointer to the created filter instance.
+ */
 static BaseFilterPtr make_filter(FilterType type) {
   switch (type) {
   case FilterType::COMPLEMENTARY:
