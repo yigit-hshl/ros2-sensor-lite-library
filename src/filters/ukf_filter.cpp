@@ -47,4 +47,14 @@ void UnscentedKalmanFilter::update_imu(const ImuMeasurement &imu) {
   state_.timestamp = imu.timestamp;
 }
 
+void UnscentedKalmanFilter::update_odom(const OdomMeasurement &odom) {
+  std::scoped_lock lock(mtx_);
+  for (int i = 0; i < 3; ++i) {
+    double K = P_[i][i] / (P_[i][i] + 0.05);
+    state_.position[i] += K * (odom.position[i] - state_.position[i]);
+    P_[i][i] = (1 - K) * P_[i][i];
+  }
+  state_.timestamp = odom.timestamp;
+}
+
 } // namespace sensor_fusion_lite
