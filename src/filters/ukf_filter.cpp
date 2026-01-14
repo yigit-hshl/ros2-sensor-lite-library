@@ -2,6 +2,7 @@
 #include "sensor_fusion_lite/filters/ekf_filter.hpp" // reuse EKF functionality
 #include <cstddef>
 #include <iostream>
+#include <vector>
 
 namespace sensor_fusion_lite {
 UnscentedKalmanFilter::UnscentedKalmanFilter() {}
@@ -67,4 +68,25 @@ void UnscentedKalmanFilter::update_gps(const GpsMeasurement &gps) {
   state_.timestamp = gps.timestamp;
 }
 
+void UnscentedKalmanFilter::update_pose(const PoseMeasurement &pose) {}
+
+void UnscentedKalmanFilter::update_custom(
+    const std::vector<std::vector<double>> &H, const std::vector<double> &z,
+    const std::vector<std::vector<double>> &R, Time timestamp) {
+  std::scoped_lock lock(mtx_);
+  // Simple fallback to diagonal updates (like EKF)
+  size_t m = z.size();
+  for (size_t i = 0; i < m && i < state_.position.size(); ++i) {
+    double K = P_[i][i] /
+               (P_[i][i] + ((R.size() > i && R[i].size() > i) ? R[i][i] : 0.1));
+    state_.position[i] += K * (z[i] - state_.position[i]);
+    P_[i][i] = (1 - K) * P_[i][i];
+  }
+  state_.timestamp = timestamp;
+}
+
+State UnscentedKalmanFilter::get_state() const {
+  std::scoped_lock lock(mtx_);
+  return state_;
+}
 } // namespace sensor_fusion_lite
