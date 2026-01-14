@@ -68,7 +68,16 @@ void UnscentedKalmanFilter::update_gps(const GpsMeasurement &gps) {
   state_.timestamp = gps.timestamp;
 }
 
-void UnscentedKalmanFilter::update_pose(const PoseMeasurement &pose) {}
+void UnscentedKalmanFilter::update_pose(const PoseMeasurement &pose) {
+  std::scoped_lock lock(mtx_);
+  for (int i = 0; i < 3; ++i) {
+    double K = P_[i][i] / (P_[i][i] + 0.02);
+    state_.position[i] += K * (pose.position[i] - state_.position[i]);
+    P_[i][i] = (1 - K) * P_[i][i];
+  }
+  state_.orientation = pose.orientation;
+  state_.timestamp = pose.timestamp;
+}
 
 void UnscentedKalmanFilter::update_custom(
     const std::vector<std::vector<double>> &H, const std::vector<double> &z,
