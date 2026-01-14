@@ -1,12 +1,35 @@
 #include "sensor_fusion_lite/fusion_core.hpp"
+
+// filters
+#include "sensor_fusion_lite/filters/base_filter.hpp"
+#include "sensor_fusion_lite/filters/complementary_filter.hpp"
+#include "sensor_fusion_lite/filters/ekf_filter.hpp"
+#include "sensor_fusion_lite/filters/ukf_filter.hpp"
+
+
+#include <atomic>
 #include <iostream>
+#include <memory>
 #include <thread>
 #include <unordered_map>
 
-
 namespace sensor_fusion_lite {
 
-// ---------------- Internal Implementation ----------------
+// ==================
+// Filter factory
+// ==================
+static BaseFilterPtr make_filter(FilterType type) {
+  switch (type) {
+  case FilterType::COMPLEMENTARY:
+    return std::make_unique<ComplementaryFilter>(0.98);
+  case FilterType::EKF:
+    return std::make_unique<ExtendedKalmanFilter>();
+  case FilterType::UKF:
+    return std::make_unique<UnscentedKalmanFilter>();
+  default:
+    return std::make_unique<ComplementaryFilter>(0.98);
+  }
+}
 
 // ---------------- Internal Implementation ----------------
 /**
