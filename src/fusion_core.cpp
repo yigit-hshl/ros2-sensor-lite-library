@@ -8,8 +8,6 @@
 
 #include <atomic>
 #include <iostream>
-#include <memory>
-#include <thread>
 #include <unordered_map>
 
 namespace sensor_fusion_lite {
@@ -43,28 +41,37 @@ static BaseFilterPtr make_filter(FilterType type) {
  * Holds the internal state, thread-safety primitives, and filter logic.
  */
 struct FusionCore::Impl {
-  FilterType type{FilterType::COMPLEMENTARY}; ///< Active filter strategy
-  int state_dim{6};                           ///< Dimension of the state vector
-  bool running{false};                        ///< Operational flag
+  FilterType filter_type{FilterType::COMPLEMENTARY}; ///< Active filter strategy
+  int state_dim{6};        ///< Dimension of the state vector
+  bool running{false};     ///< Operational flag
+  bool initialized{false}; ///< Filter initialized flag
 
   State state{};                               ///< Current estimated state
   std::vector<std::vector<double>> covariance; ///< State covariance matrix
-  std::unordered_map<std::string, bool>
-      sensor_enabled; ///< Enabled/Disabled status per sensor
+
+  BaseFilterPtr filter; ///< Active filter instance
 
   std::mutex mtx; ///< Mutex for thread-safety
+
+  std::unordered_map<std::string, bool> sensor_enabled{
+      {"imu", true},
+      {"odom", true},
+      {"gps", true},
+      {"pose", true},
+  }; ///< Enabled/Disabled status per sensor
+
   std::unordered_map<int, StateCallback>
-      state_cbs;              ///< Registered state callbacks
-  DiagnosticCallback diag_cb; ///< Diagnostic message callback
-  int next_cb_id{0};          ///< Counter for callback IDs
+      state_callbacks;              ///< Registered state callbacks
+  DiagnosticCallback diagnostic_cb; ///< Diagnostic callback
+  int next_cb_id{0};                ///< Counter for callback IDs
 
   /**
    * @brief Helper to triggering all registered state callbacks.
    */
   void notify_state() {
-    for (auto &[id, cb] : state_cbs)
-      if (cb)
-        cb(state);
+    for (auto &kv : state_callbacks)
+      if (kv.second)
+        kv.second(state);
   }
 
   /**
@@ -72,118 +79,150 @@ struct FusionCore::Impl {
    * @param msg The message to log.
    */
   void log(const std::string &msg) {
-    if (diag_cb)
-      diag_cb(msg);
+    if (diagnostic_cb)
+      diagnostic_cb(msg);
     else
       std::cout << "[FusionCore] " << msg << std::endl;
   }
 };
 
-// ---------------- Public API ----------------
+// ===============================
+// FusionCore public API
+// ===============================
 
 FusionCore::FusionCore(FilterType filter_type, int state_dim,
                        const State *initial_state)
     : impl_(std::make_unique<Impl>()) {
-  impl_->type = filter_type;
+  impl_->filter_type = filter_type;
   impl_->state_dim = state_dim;
-  if (initial_state)
+  if (initial_state) {
     impl_->state = *initial_state;
+  } else {
+    impl_->state.position = {0.0, 0.0, 0.0};
+    impl_->state.velocity = {0.0, 0.0, 0.0};
+    impl_->state.orientation = {0.0, 0.0, 0.0, 1.0};
+    impl_->state.timestamp = std::chrono::steady_clock::now();
+  }
 }
 
 FusionCore::~FusionCore() = default;
 
+// ===============================
+// Lifecycle
+// ===============================
+
 void FusionCore::initialize() {
   std::lock_guard<std::mutex> lock(impl_->mtx);
-  // Initialize covariance with small diagonal values (not absolute zero) to
-  // prevent singularities
-  impl_->covariance.assign(impl_->state_dim,
-                           std::vector<double>(impl_->state_dim, 0.0));
-  impl_->log("Initialized with state dimension " +
-             std::to_string(impl_->state_dim));
+  impl_->filter = make_filter(impl_->filter_type);
+  impl_->initialize(impl_->state, impl_->state_dim);
+
+  impl_->state = impl_->filter->get_state();
+  impl_->covariance = impl_->filter->get_covariance();
+
+  impl_->initialized = true;
+  impl_->log("FusionCore initialized");
 }
 
 void FusionCore::start() {
   std::lock_guard<std::mutex> lock(impl_->mtx);
   impl_->running = true;
-  impl_->log("Started fusion loop");
+  impl_->log("FusionCore started");
 }
 
 void FusionCore::stop() {
   std::lock_guard<std::mutex> lock(impl_->mtx);
   impl_->running = false;
-  impl_->log("Stopped fusion loop");
+  impl_->log("FusionCore stopped");
 }
+
+// ===============================
+// Configuration
+// ===============================
 
 void FusionCore::set_filter_type(FilterType t) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  impl_->type = t;
+  std::scoped_lock lock(impl_->mtx);
+  impl_->filter_type = t;
+
+  if (impl_->initialized) {
+    impl_->filter = make_filter(t);
+    impl_->filter->initialize(impl_->state, impl_->state_dim);
+    impl_->log("Filter backend switched");
+  }
 }
 
-FilterType FusionCore::get_filter_type() const { return impl_->type; }
+FilterType FusionCore::get_filter_type() const {
+  std::scoped_lock lock(impl_->mtx);
+  return impl_->filter_type;
+}
 
 void FusionCore::enable_sensor(const std::string &sensor_name, bool enabled) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
+  std::scoped_lock lock(impl_->mtx);
   impl_->sensor_enabled[sensor_name] = enabled;
 }
 
-bool FusionCore::predict(const std::chrono::duration<double> &dt) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  // Standard kinematic prediction step:
-  // x = x + v * dt (simplified constant velocity model)
-  for (int i = 0; i < 3; ++i)
-    impl_->state.position[i] += impl_->state.velocity[i] * dt.count();
+// ===============================
+// Prediction
+// ===============================
 
-  // Update timestamp to current time
-  impl_->state.timestamp = std::chrono::steady_clock::now();
+bool FusionCore::predict(const std::chrono::duration<double> &dt) {
+  std::scoped_lock lock(impl_->mtx);
+  if (!impl_->initialized || !impl_->running)
+    return false;
+
+  impl_->filter->predict(dt.count());
+
+  impl_->state = impl_->filter->get_state();
+  impl_->covariance = impl_->filter->get_covariance();
 
   // Notify listeners of the predicted state
   impl_->notify_state();
   return true;
 }
 
+// ===============================
+// Updates (typed)
+// ===============================
+
 bool FusionCore::update_imu(const ImuMeasurement &imu) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  impl_->state.timestamp = imu.timestamp;
+  std::scoped_lock lock(impl_->mtx);
+  if (!impl_->sensor_enabled["imu"])
+    return false;
 
-  // TODO: Implement specific filter logic (EKF/UKF/Complementary) here or
-  // delegate to a strategy pattern
-  impl_->log("IMU update");
-
+  impl_->filter->update_imu(imu);
+  impl_->state = impl_->filter->get_state();
   impl_->notify_state();
   return true;
 }
 
 bool FusionCore::update_odom(const OdomMeasurement &odom) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  // Direct state update from odometry (simplistic fusion)
-  impl_->state.position = odom.position;
-  impl_->state.velocity = odom.linear_velocity;
-  impl_->state.timestamp = odom.timestamp;
+  std::scoped_lock lock(impl_->mtx);
+  if (!impl_->sensor_enabled["odom"])
+    return false;
 
-  impl_->log("Odom update");
+  impl_->filter->update_odom(odom);
+  impl_->state = impl_->filter->get_state();
   impl_->notify_state();
   return true;
 }
 
 bool FusionCore::update_gps(const GpsMeasurement &gps) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  // Direct position update from GPS
-  impl_->state.position = gps.position;
-  impl_->state.timestamp = gps.timestamp;
+  std::scoped_lock lock(impl_->mtx);
+  if (!impl_->sensor_enabled["gps"])
+    return false;
 
-  impl_->log("GPS update");
+  impl_->filter->update_gps(gps);
+  impl_->state = impl_->filter->get_state();
   impl_->notify_state();
   return true;
 }
 
 bool FusionCore::update_pose(const PoseMeasurement &pose) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  // Full pose update (position + orientation)
-  impl_->state.position = pose.position;
-  impl_->state.orientation = pose.orientation;
-  impl_->state.timestamp = pose.timestamp;
+  std::scoped_lock lock(impl_->mtx);
+  if (!impl_->sensor_enabled["pose"])
+    return false;
 
-  impl_->log("Pose update");
+  impl_->filter->update_pose(pose);
+  impl_->state = impl_->filter->get_state();
   impl_->notify_state();
   return true;
 }
@@ -192,74 +231,78 @@ bool FusionCore::update_custom(const std::vector<std::vector<double>> &H,
                                const std::vector<double> &z,
                                const std::vector<std::vector<double>> &R,
                                Time timestamp) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  impl_->log("Custom update (stub)");
-  // Placeholder for custom generic Kalman Update X = X + K(z - HX)
-  impl_->state.timestamp = timestamp;
+  std::scoped_lock lock(impl_->mtx);
+  if (!impl_->sensor_enabled["custom"])
+    return false;
+
+  impl_->filter->update_custom(H, z, R, timestamp);
+  impl_->state = impl_->filter->get_state();
   impl_->notify_state();
   return true;
 }
 
-// Unified Generic Entry
+// ===============================
+// Generic measurement entry
+// ===============================
+
 bool FusionCore::add_measurement(const Measurement &m) {
   switch (m.type) {
   case MeasurementType::IMU:
-    if (m.imu)
-      return update_imu(*m.imu);
-    break;
+    return m.imu ? update_imu(*m.imu) : false;
   case MeasurementType::ODOM:
-    if (m.odom)
-      return update_odom(*m.odom);
-    break;
+    return m.odom ? update_odom(*m.odom) : false;
   case MeasurementType::GPS:
-    if (m.gps)
-      return update_gps(*m.gps);
-    break;
+    return m.gps ? update_gps(*m.gps) : false;
   case MeasurementType::POSE:
-    if (m.pose)
-      return update_pose(*m.pose);
-    break;
+    return m.pose ? update_pose(*m.pose) : false;
   case MeasurementType::CUSTOM:
-    if (m.H && m.z && m.R)
-      return update_custom(*m.H, *m.z, *m.R, m.timestamp);
-    break;
+    return m.H && m.z && m.R ? update_custom(*m.H, *m.z, *m.R, m.timestamp)
+                             : false;
   default:
-    break;
+    return false;
   }
-  return false;
 }
 
+// ===============================
+// Accessors
+// ===============================
+
 State FusionCore::get_state() const {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
+  std::scoped_lock lock(impl_->mtx);
   return impl_->state;
 }
 
 std::vector<std::vector<double>> FusionCore::get_covariance() const {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
+  std::scoped_lock lock(impl_->mtx);
   return impl_->covariance;
 }
 
 void FusionCore::set_state(const State &s) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
+  std::scoped_lock lock(impl_->mtx);
   impl_->state = s;
-  impl_->notify_state();
+  if (impl_->filter) {
+    impl_->filter->set_state(s);
+  }
 }
 
+// ===============================
+// Callbacks
+// ===============================
+
 int FusionCore::register_state_callback(StateCallback cb) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
+  std::scoped_lock lock(impl_->mtx);
   int id = impl_->next_cb_id++;
-  impl_->state_cbs[id] = std::move(cb);
+  impl_->state_callbacks[id] = cb;
   return id;
 }
 
 void FusionCore::unregister_state_callback(int id) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  impl_->state_cbs.erase(id);
+  std::scoped_lock lock(impl_->mtx);
+  impl_->state_callbacks.erase(id);
 }
 
 void FusionCore::set_diagnostic_callback(DiagnosticCallback cb) {
-  std::lock_guard<std::mutex> lock(impl_->mtx);
-  impl_->diag_cb = std::move(cb);
+  std::scoped_lock lock(impl_->mtx);
+  impl_->diagnostic_cb = cb;
 }
-
 } // namespace sensor_fusion_lite
