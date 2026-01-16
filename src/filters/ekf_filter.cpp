@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cmat>
 
-
 namespace sensor_fusion_lite {
 
 /**
