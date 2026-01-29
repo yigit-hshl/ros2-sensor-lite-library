@@ -20,18 +20,21 @@ namespace sensor_fusion_lite {
  * @brief Factory function to create a filter instance based on the specified
  * type.
  * @param type The type of filter to create.
+ * @param config The full configuration (to extract specific params).
  * @return A unique pointer to the created filter instance.
  */
-static BaseFilterPtr make_filter(FilterType type) {
+static BaseFilterPtr make_filter(FilterType type, const FusionConfig &config) {
   switch (type) {
   case FilterType::COMPLEMENTARY:
-    return std::make_unique<ComplementaryFilter>(0.98);
+    return std::make_unique<ComplementaryFilter>(
+        config.complementary_config.alpha);
   case FilterType::EKF:
     return std::make_unique<ExtendedKalmanFilter>();
   case FilterType::UKF:
     return std::make_unique<UnscentedKalmanFilter>();
   default:
-    return std::make_unique<ComplementaryFilter>(0.98);
+    return std::make_unique<ComplementaryFilter>(
+        config.complementary_config.alpha);
   }
 }
 
@@ -43,6 +46,7 @@ static BaseFilterPtr make_filter(FilterType type) {
 struct FusionCore::Impl {
   FilterType filter_type{FilterType::COMPLEMENTARY}; ///< Active filter strategy
   int state_dim{6};        ///< Dimension of the state vector
+  FusionConfig config;     ///< Configuration storage
   bool running{false};     ///< Operational flag
   bool initialized{false}; ///< Filter initialized flag
 
@@ -111,10 +115,14 @@ FusionCore::~FusionCore() = default;
 // Lifecycle
 // ===============================
 
-void FusionCore::initialize() {
+void FusionCore::initialize(const FusionConfig &config) {
   std::lock_guard<std::mutex> lock(impl_->mtx);
-  impl_->filter = make_filter(impl_->filter_type);
-  impl_->initialize(impl_->state, impl_->state_dim);
+  impl_->config = config;
+  impl_->filter_type = config.filter_type;
+  impl_->state_dim = config.state_dim;
+
+  impl_->filter = make_filter(impl_->filter_type, impl_->config);
+  impl_->filter->initialize(impl_->state, impl_->state_dim, impl_->config);
 
   impl_->state = impl_->filter->get_state();
   impl_->covariance = impl_->filter->get_covariance();
@@ -142,10 +150,12 @@ void FusionCore::stop() {
 void FusionCore::set_filter_type(FilterType t) {
   std::scoped_lock lock(impl_->mtx);
   impl_->filter_type = t;
+  // Also update config
+  impl_->config.filter_type = t;
 
   if (impl_->initialized) {
-    impl_->filter = make_filter(t);
-    impl_->filter->initialize(impl_->state, impl_->state_dim);
+    impl_->filter = make_filter(t, impl_->config);
+    impl_->filter->initialize(impl_->state, impl_->state_dim, impl_->config);
     impl_->log("Filter backend switched");
   }
 }

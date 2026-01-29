@@ -13,7 +13,7 @@ UnscentedKalmanFilter::UnscentedKalmanFilter() {}
  * @param state_dim The dimension of the state vector.
  */
 void UnscentedKalmanFilter::initialize(const State &initial_state,
-                                       int state_dim) {
+                                       int state_dim, const FusionConfig &) {
   std::scoped_lock lock(mtx_);
   state_ = initial_state;
   P_.assign(state_dim, std::vector<double>(state_dim, 0.0));

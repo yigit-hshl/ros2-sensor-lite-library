@@ -12,10 +12,12 @@ namespace sensor_fusion_lite {
  */
 ComplementaryFilter::ComplementaryFilter(double alpha) : alpha_(alpha) {}
 
-void ComplementaryFilter::initialize(const State &initial_state,
-                                     int state_dim) {
+void ComplementaryFilter::initialize(const State &initial_state, int state_dim,
+                                     const FusionConfig &config) {
   std::scoped_lock lock(mtx_);
   state_ = initial_state;
+  alpha_ = config.complementary_config.alpha;
+
   // Initialize covariance (though mostly unused in pure complementary filter)
   // to avoid singularities
   covariance_.assign(state_dim, std::vector<double>(state_dim, 0.0));
@@ -46,10 +48,18 @@ void ComplementaryFilter::predict(double dt) {
 void ComplementaryFilter::update_imu(const ImuMeasurement &imu) {
   std::scoped_lock lock(mtx_);
 
+  // Calculate dt from last state timestamp
+  // Note: This assumes steady_clock::now() and timestamp are compatible.
+  // In a real ROS node, we should be careful with clock sources.
+  // Converting chrono time_point difference to seconds (double).
+  double dt =
+      std::chrono::duration<double>(imu.timestamp - state_.timestamp).count();
+  if (dt <= 0.0)
+    dt = 0.001; // Avoid zero or negative dt on first update or out-of-order
+
   // 1. Process Linear Acceleration
   // Basic dead reckoning: v = v + a * dt
   // Note: This drifts significantly without correction.
-  double dt = 0.01; // FIXME: Should use actual dt between measurements
   for (int i = 0; i < 3; ++i) {
     state_.velocity[i] += imu.linear_accel[i] * dt;
   }

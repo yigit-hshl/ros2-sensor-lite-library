@@ -9,7 +9,8 @@ class ExtendedKalmanFilter : public BaseFilter {
 public:
   ExtendedKalmanFilter();
 
-  void initialize(const State &initial_state, int state_dim) override;
+  void initialize(const State &initial_state, int state_dim,
+                  const FusionConfig &config) override;
   void predict(double dt) override;
 
   void update_imu(const ImuMeasurement &imu) override;
@@ -37,6 +38,9 @@ private:
   std::vector<std::vector<double>> P_;
   // process noise covariance
   std::vector<std::vector<double>> Q_;
+
+  // Last timestamp for dt calculation
+  Time x_last_timestamp_;
 
   // helper matrix ops (private)
   static std::vector<std::vector<double>>
