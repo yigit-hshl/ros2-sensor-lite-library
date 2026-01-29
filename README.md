@@ -1,107 +1,105 @@
 # ros2-sensor-lite-library
 
-A lightweight, modular library for combining multiple sensors (IMU, odometry, GPS, LIDAR pose, etc.) into a consistent state estimate without forcing users into heavy configs.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![ROS 2](https://img.shields.io/badge/ROS2-Humble%2B-blue.svg)](https://docs.ros.org/en/humble/)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
 
-1. Pluggable Filters
+> [!WARNING]
+> This project is still under construction and lacks a lot of functionalities and it might not work as expected. Use with caution.
 
-Complementary filter → simple IMU fusion (gyro + accel).
-1D/2D/3D Kalman filter (basic EKF/UKF) → extendable templates.
-Custom filter hook → allow user to drop in their own equations.
+A lightweight, purely C++17 modular sensor fusion library for ROS 2. Designed for ease of use, it provides plug-and-play fusion of IMU, Odometry, and GPS data using swappable filter backends (Complementary, EKF, UKF).
 
-2. ROS2 Node Interfaces
-Subscribes to:
-sensor_msgs/Imu
-nav_msgs/Odometry
-sensor_msgs/NavSatFix
-geometry_msgs/PoseStamped
+## 🚀 Key Features
 
-Publishes:
-nav_msgs/Odometry (fused state)
-geometry_msgs/PoseWithCovarianceStamped
+*   **Modular Backends**: Switch between `Complementary`, `EKF`, or `UKF` filters via a single parameter.
+*   **ROS 2 Standard**: Publishes `nav_msgs/Odometry` and broadcasts `tf2` transforms (`odom` -> `base_link`) out of the box.
+*   **No Heavy Configs**: Simple, flat parameter structure. No complex YAML trees required to get started.
+*   **Sensor Agnostic**: Accepts standard ROS messages:
+    *   `sensor_msgs/Imu`
+    *   `nav_msgs/Odometry`
+    *   `geometry_msgs/PoseStamped`
 
-3. Dynamic Configuration
-Allow runtime adjustment of noise covariances (similar to dynamic_reconfigure in ROS1).
-Example: change IMU trust level on the fly if it starts drifting.
+## 📦 Installation
 
-4. Ease of Use
-YAML config file with:
-which sensors to fuse
-noise parameters
-update rates
-Predefined templates (IMU+Odometry, IMU+GPS, IMU+LIDAR).
-
-5. Extras
-Diagnostics (diagnostic_msgs/DiagnosticArray) → show which sensor is active / dropped.
-Visualization plugin for RViz → fused vs. raw trajectories.
-
-## High-Level Node Architecture
-
- Node: fusion_node
-
-This is the main entrypoint ROS2 node.
-
-Inputs (Subscribed Topics)
-
-IMU data → /imu/data (sensor_msgs/Imu)
-
-Odometry → /wheel/odom (nav_msgs/Odometry)
-
-GPS (optional) → /gps/fix (sensor_msgs/NavSatFix)
-
-Pose estimates (optional) → /lidar/pose (geometry_msgs/PoseStamped)
-
-Outputs (Published Topics)
-
-Fused state → /fusion/odom (nav_msgs/Odometry)
-
-Pose estimate with covariance → /fusion/pose (geometry_msgs/PoseWithCovarianceStamped)
-
-Diagnostics → /fusion/diagnostics (diagnostic_msgs/DiagnosticArray)
-
-Parameters (YAML Configurable)
-
-use_imu (bool, default: true)
-
-use_odom (bool, default: true)
-
-use_gps (bool, default: false)
-
-use_pose (bool, default: false)
-
-filter_type (string: complementary, ekf, ukf)
-
-update_rate (Hz, default: 50)
-
-Noise covariance settings (per sensor):
-
-imu_noise_cov (3x3)
-
-odom_noise_cov (6x6)
-
-gps_noise_cov (3x3)
-
-pose_noise_cov (6x6)
-
-diagnostics_enabled (bool, default: true)
-
-
-## Build Instructions
+This is a standard ROS 2 package. Clone it into your workspace:
 
 ```bash
-mkdir -p colcon_ws/src
-cd colcon_ws/src
-git clone <repo_url>
+mkdir -p ~/colcon_ws/src
+cd ~/colcon_ws/src
+git clone https://github.com/yigit-hshl/ros2-sensor-lite-library.git
 cd ..
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-## Documentation
+## 🏃 Usage
 
-To generate Doxygen documentation:
+### Running the Node
+
+You can run the node directly with default settings (Complementary Filter):
 
 ```bash
-doxygen docs/Doxyfile
+ros2 run sensor_fusion_lite fusion_node
 ```
 
-See [docs/architecture.md](docs/architecture.md) for design details.
+### Using Launch Files
+
+A launch file is provided to easily configure parameters:
+
+```bash
+ros2 launch sensor_fusion_lite fusion.launch.py filter_type:=ekf fusion_rate_hz:=50.0
+```
+
+## ⚙️ Configuration
+
+The node is highly configurable via ROS parameters.
+
+### General Parameters
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `fusion_rate_hz` | `double` | `30.0` | Output frequency of fused state. |
+| `filter_type` | `string` | `complementary` | Filter strategy: `complementary`, `ekf`, `ukf`. |
+| `state_dim` | `int` | `6` | Dimension of the state vector (usually 6: x,y,z,vx,vy,vz). |
+
+### Complementary Filter Stats
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `complementary.alpha` | `double` | `0.98` | Trust factor. Higher = trust prediction/old state, Lower = trust measurement. |
+
+### EKF / UKF Stats
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `ekf.initial_process_noise` | `double[]` | `[]` | Diagonal elements of process noise matrix Q. |
+
+## 📡 Topics
+
+### Subscribed
+*   `/imu/data` (`sensor_msgs/msg/Imu`)
+*   `/odom` (`nav_msgs/msg/Odometry`)
+*   `/gps_pose` (`geometry_msgs/msg/PoseStamped`)
+
+### Published
+*   `/fused_pose` (`geometry_msgs/msg/PoseStamped`): The fused position and orientation.
+*   `/odom_fused` (`nav_msgs/msg/Odometry`): Standard odometry message with velocity.
+*   **TF**: Broadcasts `odom` -> `base_link`.
+
+## 📚 Documentation
+
+Detailed architecture and API documentation is available:
+*   [Architecture Design](docs/architecture.md)
+*   Generate Doxygen: `doxygen docs/Doxyfile`
+
+## 🤝 Contributing
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
