@@ -4,6 +4,7 @@
 #include <mutex>
 
 namespace sensor_fusion_lite {
+
 class ExtendedKalmanFilter : public BaseFilter {
 public:
   ExtendedKalmanFilter();
@@ -25,24 +26,43 @@ public:
   void set_state(const State &s) override;
 
 private:
+  static constexpr size_t N = 6;
+
   mutable std::mutex mtx_;
-  State state_;
-  std::vector<std::vector<double>> P_; // covariance
-  std::vector<std::vector<double>> Q_; // process noise
+
+  // state vector
+  std::vector<double> x_;
+
+  // covariance matrix
+  std::vector<std::vector<double>> P_;
+  // process noise covariance
+  std::vector<std::vector<double>> Q_;
+
   // helper matrix ops (private)
   static std::vector<std::vector<double>>
   mat_add(const std::vector<std::vector<double>> &A,
           const std::vector<std::vector<double>> &B);
+
   static std::vector<std::vector<double>>
   mat_mul(const std::vector<std::vector<double>> &A,
           const std::vector<std::vector<double>> &B);
-  static std::vector<std::vector<double>>
-  mat_transpose(const std::vector<std::vector<double>> &A);
-  static std::vector<std::vector<double>> mat_identity(size_t n,
-                                                       double val = 1.0);
+
   static std::vector<double>
   mat_vec_mul(const std::vector<std::vector<double>> &A,
-              const std::vector<double> &v);
+              const std::vector<double> &x);
+
+  static std::vector<std::vector<double>>
+  mat_transpose(const std::vector<std::vector<double>> &A);
+
+  static std::vector<std::vector<double>> mat_identity(size_t n);
+
+  static std::vector<std::vector<double>>
+  mat_inverse_3x3(const std::vector<std::vector<double>> &A);
+
   static double clamp(double v, double lo, double hi);
+
+  void ekf_update(const std::vector<double> &z,
+                  const std::vector<std::vector<double>> &H,
+                  const std::vector<std::vector<double>> &R, Time timestamp);
 };
 } // namespace sensor_fusion_lite
