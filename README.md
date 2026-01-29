@@ -90,6 +90,7 @@ The node is highly configurable via ROS parameters.
 
 Detailed architecture and API documentation is available:
 *   [Architecture Design](docs/architecture.md)
+*   [Theoretical Background & Math](docs/theory.md)
 *   Generate Doxygen: `doxygen docs/Doxyfile`
 
 ## 🤝 Contributing

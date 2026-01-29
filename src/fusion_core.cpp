@@ -121,9 +121,13 @@ void FusionCore::initialize(const FusionConfig &config) {
   impl_->filter_type = config.filter_type;
   impl_->state_dim = config.state_dim;
 
+  // Factory creation of the specific filter backend
   impl_->filter = make_filter(impl_->filter_type, impl_->config);
+
+  // Initialize the backend with current state and config
   impl_->filter->initialize(impl_->state, impl_->state_dim, impl_->config);
 
+  // Sync internal state with filter state
   impl_->state = impl_->filter->get_state();
   impl_->covariance = impl_->filter->get_covariance();
 
@@ -179,8 +183,10 @@ bool FusionCore::predict(const std::chrono::duration<double> &dt) {
   if (!impl_->initialized || !impl_->running)
     return false;
 
+  // Delegate prediction to the active filter strategy
   impl_->filter->predict(dt.count());
 
+  // Update internal state representation
   impl_->state = impl_->filter->get_state();
   impl_->covariance = impl_->filter->get_covariance();
 

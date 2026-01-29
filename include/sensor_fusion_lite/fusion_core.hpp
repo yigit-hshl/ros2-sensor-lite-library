@@ -20,12 +20,20 @@ using Time = std::chrono::steady_clock::time_point;
  * @brief Represents the estimated state of the robot.
  */
 struct State {
-  std::array<double, 3> position{}; ///< Position (x, y, z) in meters
-  std::array<double, 3> velocity{}; ///< Linear velocity (vx, vy, vz) in m/s
+  std::array<double, 3>
+      position{}; ///< Position (x, y, z) in meters, typically in a global fixed
+                  ///< frame (e.g., 'map' or 'odom')
+  std::array<double, 3>
+      velocity{}; ///< Linear velocity (vx, vy, vz) in m/s, typically in the
+                  ///< body frame or world frame depending on configuration
   std::array<double, 4>
-      orientation{}; ///< Orientation as a quaternion (x, y, z, w)
-  std::vector<std::vector<double>> covariance; ///< State covariance matrix
-  Time timestamp{}; ///< Timestamp of the state estimate
+      orientation{}; ///< Orientation as a quaternion (x, y, z, w). w is the
+                     ///< scalar part. Normalized.
+  std::vector<std::vector<double>>
+      covariance; ///< State covariance matrix (N x N), representing uncertainty
+                  ///< of the estimate.
+  Time timestamp{}; ///< Timestamp of the state estimate, usually corresponding
+                    ///< to the latest measurement time.
 };
 
 /**
@@ -139,8 +147,20 @@ using DiagnosticCallback = std::function<void(const std::string &)>;
 /**
  * @brief Core class for Sensor Fusion Logic.
  *
- * This class manages the state estimation independent of the ROS 2 middleware.
- * It handles state prediction and measurement updates from various sensors.
+ * This class serves as the main entry point for the sensor fusion library. It
+ * abstracts the underlying filter implementation (Complementary, EKF, UKF) and
+ * manages the state estimation lifecycle. It is designed to be:
+ * - Thread-safe: Uses internal mutexes to protect state and configuration.
+ * - Framework-agnostic: Can be used with ROS 2, generic C++, or other
+ * middlewares.
+ * - Modular: Filters can be swapped at runtime via `set_filter_type`.
+ *
+ * Usage Cycle:
+ * 1. Instantiate `FusionCore`.
+ * 2. Call `initialize` with a `FusionConfig` object.
+ * 3. Call `start` (optional, for semantic correctness).
+ * 4. Feed measurments via `add_measurement` or specific `update_*` methods.
+ * 5. Retrieve state via `get_state` or register a callback.
  */
 class FusionCore {
 public:
